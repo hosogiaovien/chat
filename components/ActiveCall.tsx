@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useWebRTC } from '../hooks/useWebRTC';
 import VideoCallUI from './VideoCall';
 import VoiceCall from './VoiceCall';
@@ -26,6 +26,39 @@ const ActiveCall: React.FC<ActiveCallProps> = ({
         forceUpdateTick, remoteUid
     } = useWebRTC(chatId, currentUserUid, isCaller, isVideo, onEnd, onCallFinished);
 
+    // --- NEW: WAKE LOCK (Giữ màn hình luôn sáng) ---
+    useEffect(() => {
+        let wakeLock: any = null;
+
+        const requestWakeLock = async () => {
+            if ('wakeLock' in navigator) {
+                try {
+                    // @ts-ignore - Typescript might not recognize wakeLock in all envs yet
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock active');
+                } catch (err) {
+                    console.warn('Wake Lock error:', err);
+                }
+            }
+        };
+
+        requestWakeLock();
+
+        // Re-acquire lock if visibility changes (e.g. user switches tab and comes back)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            if (wakeLock) wakeLock.release();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
     if (activeIsVideo) {
         return (
             <VideoCallUI 
@@ -50,7 +83,7 @@ const ActiveCall: React.FC<ActiveCallProps> = ({
 
     return (
         <VoiceCall 
-            remoteStream={remoteStream} // FIX: Pass remote stream to enable audio
+            remoteStream={remoteStream} 
             remoteProfile={remoteProfile}
             remoteUid={remoteUid}
             connectionStatus={connectionStatus}
