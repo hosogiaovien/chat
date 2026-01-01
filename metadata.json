@@ -1,0 +1,8 @@
+{
+  "name": "99999Copy of 33333 Cùng chat",
+  "description": "A responsive web chat application featuring real-time messaging, image uploads via Google Apps Script, and native WebView bridging capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
